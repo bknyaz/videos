@@ -1,8 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Thu Nov 10 13:53:38 2016
-
 Load the VGG16 network, adopted from https://github.com/Lasagne/Recipes/blob/master/modelzoo/vgg16.py
  
 VGG-16, a 16-layer model from the paper:
