@@ -40,6 +40,7 @@ parser.add_argument('--max_iter', default=40000, type=int, help='number of learn
 parser.add_argument('--val_step', default=400, type=int, help='number of steps after which validate the network')
 parser.add_argument('--lrdec', default=0.1, type=float, help='learning rate decay, multiplies lr each step_size iterations')
 parser.add_argument('--wdec', default=1e-5, type=float, help='weight decay')
+parser.add_argument('--drop', default=0.5, type=float, help='dropout rate')
 parser.add_argument('-B','--bs', default=128, type=int, help='batch size')
 parser.add_argument('-s','--stride', default=3, help='stride between frames during validation and testing')
 parser.add_argument('-n','--n_frames', default=25, help='number of frames per video during validation and testing')
@@ -78,7 +79,9 @@ model.image_classify()
 net = model.net
 last_layer = 'prob'
 del net['fc1000']
-net['fc_ucf101'] = DenseLayer(net['pool5'], num_units=len(dloader.classes), nonlinearity=None)
+net['pool5'] = PoolLayer(net['res5c_relu'], pool_size=4, stride=3, pad=0, mode='average_exc_pad', ignore_border=True)
+net['drop'] = DropoutLayer(net['pool5'], p=args.drop)
+net['fc_ucf101'] = DenseLayer(net['drop'], num_units=len(dloader.classes), nonlinearity=None)
 net[last_layer] = NonlinearityLayer(net['fc_ucf101'], nonlinearity=softmax)
 
 if args.layers != 'all':
