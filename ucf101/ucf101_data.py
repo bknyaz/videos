@@ -105,7 +105,7 @@ class DataLoader(object):
         crop_size = 224
         if train:
             center = [np.random.randint(0, high=im.shape[0]-crop_size),np.random.randint(0, high=im.shape[1]-crop_size)]
-            if np.random.rand() > 0.5:
+            if np.random.rand() > 0.5: # random flip
                 im = im[:,::-1,:] # height x width x channels
         else:
             center = [int(np.round((im.shape[0]-crop_size)/2.)),int(np.round((im.shape[1]-crop_size)/2.))]

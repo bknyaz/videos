@@ -26,12 +26,11 @@ import theano.tensor as T
 
 from lasagne.layers import NonlinearityLayer, DenseLayer
 from lasagne.nonlinearities import softmax
-from timeit import default_timer as timer
 
 from ucf101_data import DataLoader
 from vgg16 import VGG16
 
-start = timer()
+start_global = time.time()
 
 #####################
 ### Parse options ###
@@ -41,17 +40,17 @@ parser = argparse.ArgumentParser(description='Fine tuning of the VGG16 network o
 parser.add_argument('-M','--model', default='/home/boris/Project/models/vgg/vgg16.pkl', help='location of the .pkl network')
 parser.add_argument('-L','--layers', default='all', help='layers to be fine tuned (last, fc, all)')
 parser.add_argument('--lr', default=1e-3, type=float, help='learning rate: lr = 0.01-0.0001 can be a reasonable choice')
-parser.add_argument('--step_size', default=20000, type=int, help='number of steps after which lr will be decreased by lrdec')
-parser.add_argument('--max_iter', default=40000, type=int, help='number of learning iterations')
-parser.add_argument('--val_step', default=400, type=int, help='number of steps after which validate the network')
+parser.add_argument('--step_size', default=5000, type=int, help='number of steps after which lr will be decreased by lrdec')
+parser.add_argument('--max_iter', default=10000, type=int, help='number of learning iterations')
+parser.add_argument('--val_step', default=100, type=int, help='number of steps after which validate the network')
 parser.add_argument('--lrdec', default=0.1, type=float, help='learning rate decay, multiplies lr each step_size iterations')
 parser.add_argument('--wdec', default=1e-5, type=float, help='weight decay')
 parser.add_argument('--drop', default=0.5, type=float, help='dropout rate')
-parser.add_argument('-B','--bs', default=32, type=int, help='batch size')
+parser.add_argument('-B','--bs', default=128, type=int, help='batch size')
 parser.add_argument('-s','--stride', default=3, help='stride between frames during validation and testing')
 parser.add_argument('-n','--n_frames', default=25, help='number of frames per video during validation and testing')
 parser.add_argument('--plot', default=True, type=bool, help='save plots, figures, etc.')
-parser.add_argument('--save', default=10000, type=int, help='step after which save snapshots, 0 - do not save')
+parser.add_argument('--save', default=5000, type=int, help='step after which save snapshots, 0 - do not save')
 parser.add_argument('-D','--dir', default='/home/boris/Project/data/videos/UCF101', help='folder in which folders ucfTrainTestlist and UCF-101 must be available')
 parser.add_argument('--results_dir', default='results', help='save plots, figures, models, etc. to this directory')
 
@@ -110,7 +109,7 @@ loss_train += args.wdec * weightsl2
 
 lr_var = theano.shared(np.array(args.lr, dtype=theano.config.floatX))
 params = lasagne.layers.get_all_params(net[last_layer], trainable=True)
-print('%d trainable pairs of weight matrix W and bias vector b ' % len(params))
+print('%d trainable parameters (like weights W or bias b) ' % len(params))
 updates = lasagne.updates.nesterov_momentum(loss_train, params, learning_rate=lr_var, momentum=0.9)
 train_fn = theano.function([input_var, target_var], [loss_train, prediction_train], updates=updates)
 
@@ -218,6 +217,10 @@ while it <= args.max_iter:
     it += 1
 
 
+# use some snapshot to set values of the network
+#with open('snapshot_10000.pkl', 'r') as fid:
+#    values = pickle.load(fid)
+#lasagne.layers.set_all_param_values(net[last_layer],values)
 
 ################
 ### TESTING ###
@@ -226,13 +229,23 @@ print('Testing performance of the trained model')
 start = time.time()
 test_loss, test_predictions, test_predictions_videos, frame_labels = [],[],[],[]
 for batch in dloader.get_batch_videos(dloader.test_videos, dloader.test_labels, args.bs):
-    frames, labels = dloader.get_frames_val(frames_dir, batch[0], model.MEAN_BGR, batch[1],STRIDE=args.stride,N_FRAMES=args.n_frames)
+    frames, labels = dloader.get_frames_val(frames_dir, batch[0], model.MEAN_BGR, batch[1], STRIDE=args.stride, N_FRAMES=args.n_frames)
     for f,_ in enumerate(frames):
-        loss, prediction = val_fn(frames[f], labels[f]) # predict labels for each frame
+        if frames[f].shape[0] > args.bs:
+            loss, prediction = [],[]
+            for f_sub in range(int(np.ceil(frames[f].shape[0]/float(args.bs)))):
+                loss_sub, prediction_sub = val_fn(frames[f][f_sub*args.bs:(f_sub+1)*args.bs], labels[f]) # predict labels for each frame
+                loss.append(loss_sub)
+                prediction.append(prediction_sub)
+            loss = np.concatenate(loss)
+            prediction = np.concatenate(prediction)
+        else:
+            loss, prediction = val_fn(frames[f], labels[f]) # predict labels for each frame
         test_loss.append(loss)
         test_predictions.append(prediction)
         test_predictions_videos.append(np.mean(prediction,axis=0)) # get labels for each video
     frame_labels.append(np.concatenate(labels))
+    print(len(frame_labels))
 
 frame_labels = np.concatenate(frame_labels)
 test_loss = np.mean(np.concatenate(test_loss))
@@ -244,3 +257,5 @@ print('test time %.3f, test loss %.4f, test error %.4f, test error (videos) %.4f
                                                                     test_err_frames, test_err_videos, (1-test_err_videos)*100))
 np.save('%s/loss_errors_labels_test' % args.results_dir, (test_predictions, test_loss, test_err_frames, 
                                                           test_predictions_videos, test_err_videos))
+                                                          
+print('Experiment took %.3f seconds' % (time.time() - start_global))

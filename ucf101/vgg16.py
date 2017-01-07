@@ -11,12 +11,8 @@ License: see http://www.robots.ox.ac.uk/~vgg/research/very_deep/
 Download pretrained weights from:
 https://s3.amazonaws.com/lasagne/recipes/pretrained/imagenet/vgg16.pkl
 
-@author: Boris Knyazev
 """
 
-
-import matplotlib.pyplot as plt
-import numpy as np
 import cv2
 import os
 import pickle
@@ -75,6 +71,10 @@ class VGG16:
         
     # Check the model
     def image_classify(self, im_path):
+        
+        import matplotlib.pyplot as plt
+        import numpy as np
+
         im_size = 256
         crop_size = 224
         im = cv2.imread(im_path)
