@@ -18,14 +18,15 @@ ResNet-50, last layer     | 76.5          | weight decay=5e-4
 ResNet-50, all layers     | 79.5          | batch size=32, max_iter=step_size=20k, weight decay=5e-4
 ResNet-50, last layer     | 78.5          | pool5 layer modified, weight decay=5e-4
 ResNet-50, last layer     | 79.4          | pool5 layer modified, weight decay=5e-4, dropout=0.5
-ResNet-50, all layers     | **80.4**      | batch size=32, max_iter=step_size=20k, pool5 layer modified, weight decay=5e-4, dropout=0.5
+ResNet-50, all layers     | **80.4** (81.4)*  | batch size=32, max_iter=step_size=20k, pool5 layer modified, weight decay=5e-4, dropout=0.5
+*all videos frames used for prediction (be default only 25 frames with stride 3 are used for prediction)
 
 Other works
 
 Model, fine tuning layers | Test acc*
 -------                   |:--------:
 CNN-M-2048, last layer    | 72.7 [2]
-iDT+FV                    | 85.9 [3]
+Improved DT+FV            | 85.9 [3]
 State of the art          | **95.6** [4]
 *accuracy averaged over 3 splits in some works
 
