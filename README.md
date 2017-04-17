@@ -27,7 +27,7 @@ ResNet-50, all layers     | **80.4** (81.4)*  | batch size=32, max_iter=step_s
 
 Model, fine tuning layers           | Test acc      | Parameters
 -------                             |:--------:     |--------
-ResNet-50, LSTM+last layers ([code](https://github.com/bknyaz/videos/blob/master/ucf101/ucf101_ft_resnet_lstm.ipynb))        | 71.7 (73.1)         | 512 units in LSTM, 25 frames for training, 25 (75) frames for prediction
+ResNet-50, LSTM+last layer ([code](https://github.com/bknyaz/videos/blob/master/ucf101/ucf101_ft_resnet_lstm.ipynb))  | 71.7 (73.1) | 512 units in LSTM, 25 frames for training, 25 (75) frames for prediction
 
 #### Other works
 
