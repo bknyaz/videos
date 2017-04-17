@@ -1,11 +1,13 @@
 # videos
 Scripts for video recognition
 
-### Results
+## Results
 
-Models are fine tuned on video frames.
+### UCF-101
 
 Test acc = video classification accuracy on the UCF-101 [1] test set (split 1), %
+
+#### Models fine tuned on single video frames
 
 Model, fine tuning layers | Test acc      | Parameters
 -------                   |:--------:     |--------
@@ -21,7 +23,13 @@ ResNet-50, last layer     | 79.4          | pool5 layer modified, weight decay=5
 ResNet-50, all layers     | **80.4** (81.4)*  | batch size=32, max_iter=step_size=20k, pool5 layer modified, weight decay=5e-4, dropout=0.5
 *all video frames used for prediction (be default only 25 frames with stride 3 are used for prediction)
 
-Other works
+#### Models fine tuned on sequences of video frames
+
+Model, fine tuning layers           | Test acc      | Parameters
+-------                             |:--------:     |--------
+ResNet-50, LSTM+last layers ([code](https://github.com/bknyaz/videos/blob/master/ucf101/ucf101_ft_resnet_lstm.ipynb))        | 71.7 (73.1)         | 512 units in LSTM, 25 frames for training, 25 (75) frames for prediction
+
+#### Other works
 
 Model, fine tuning layers | Test acc*
 -------                   |:--------:
@@ -30,7 +38,7 @@ Improved DT+FV            | 85.9 [3]
 State of the art          | **95.6** [4]
 *accuracy averaged over 3 splits in some works
 
-### References
+## References
 
 [1] UCF101: A Dataset of 101 Human Action Classes From Videos in The Wild, 2012
 
