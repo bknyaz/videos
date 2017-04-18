@@ -67,6 +67,7 @@ class DataLoader(object):
         self.test_videos = test_videos
         self.test_labels = np.asarray(test_labels,dtype='uint8')
         
+        self.crop_size = 224
         # Check dataset consistency
         assert(len(self.train_labels) == len(train_videos))
         assert(len(self.test_labels) == len(test_videos))
@@ -96,20 +97,19 @@ class DataLoader(object):
             yield iterable_samples[ndx:min(ndx + batch_size, l)], iterable_labels[ndx:min(ndx + batch_size, l)]
     
     
-    def im_crop(self, im, MEAN_BGR, train=False):
+    def im_crop(self, im, MEAN_BGR, center=None, flip=None, train=False):
         # resize
         k = 256./np.min((im.shape[1],im.shape[0]))
         im = cv2.resize(im,(int(im.shape[1]*k),int(im.shape[0]*k))).astype(np.float32)
-        
         # crop
-        crop_size = 224
         if train:
-            center = [np.random.randint(0, high=im.shape[0]-crop_size),np.random.randint(0, high=im.shape[1]-crop_size)]
-            if np.random.rand() > 0.5: # random flip
+            if center== None:
+                center = [np.random.randint(0, high=im.shape[0]-self.crop_size), np.random.randint(0, high=im.shape[1]-self.crop_size)]
+            if flip or (flip==None and np.random.rand() > 0.5): # random flip
                 im = im[:,::-1,:] # height x width x channels
-        else:
-            center = [int(np.round((im.shape[0]-crop_size)/2.)),int(np.round((im.shape[1]-crop_size)/2.))]
-        im = im.transpose((2,0,1))[None,:,center[0]:center[0]+crop_size,center[1]:center[1]+crop_size]
+        elif center== None:
+            center = [int(np.round((im.shape[0]-self.crop_size)/2.)), int(np.round((im.shape[1]-self.crop_size)/2.))]
+        im = im.transpose((2,0,1))[None,:,center[0]:center[0]+self.crop_size, center[1]:center[1]+self.crop_size]
         return im-MEAN_BGR
     
     # Gets random frame (random crop) from each video
@@ -149,6 +149,33 @@ class DataLoader(object):
             labels[-1] = np.asarray(labels[-1])
             
         return frames, labels
+
+    # Gets random frame (random crop) from each video
+    def get_frames_rnn(self, frames_dir, videos, MEAN_BGR, train, STRIDE=1, N_FRAMES=2):
+        frames = np.zeros((len(videos)*N_FRAMES,3,224,224),dtype='float32')
+        ids = []
+        center, flip = None, None
+        for v_id,video in enumerate(videos):
+            video_names = video.split('/')
+            frames_dir_video = '%s/%s/%s/' % (frames_dir,video_names[-2],video_names[-1][:-4])
+            n_frames = len(os.listdir(frames_dir_video))
+            frame_ref = np.random.permutation(n_frames-N_FRAMES*STRIDE+1)[0] # get random reference frame
+
+            for frame_id in range(N_FRAMES):
+                    
+                frame_path = '%s/%d.jpg' % (frames_dir_video,frame_ref+frame_id*STRIDE) 
+                frame = cv2.imread(frame_path)
+                if frame is None:
+                    raise ValueError('frame invalid')
+
+                if train and frame_id == 0:
+                    center = [np.random.randint(0, high=frame.shape[0]-self.crop_size), np.random.randint(0, high=frame.shape[1]-self.crop_size)]
+                    flip = np.random.rand() > 0.5
+
+                frames[v_id*N_FRAMES+frame_id] = self.im_crop(frame, MEAN_BGR, center=center, flip=flip, train=train)
+                ids.append(v_id)
+
+        return frames, ids
 
 if __name__ == "__main__":         
     dloader = DataLoader(shuffle_train=True)
